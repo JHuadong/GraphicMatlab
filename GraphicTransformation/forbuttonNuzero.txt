@@ -1,0 +1,81 @@
+Lenaorigin=imread('lena.png');
+Lenadou=im2double(Lenaorigin);      %%对图像数据进行双精度处理
+Lena_fft=fftshift(fft2(Lenadou));   %%对原图进行2维傅里叶变换
+Lena_dct=dct2(Lenadou);                       %%对图像进行二维离散余弦变换
+Hadema=hadamard(512);               %%产生一个512*512的哈德曼方阵
+Lena_hadema=Hadema*Lenadou*Hadema/512;%%利用公式G=HFH，其中G为变换的结果，F为原始图像，H为变换矩阵
+
+side=512;
+level=8;                 %%在显示图像时应用的八位无符号整型量化
+Total=2^level-1;         %%Total表示图像拥有的灰度级数量
+
+tPSNR=74;
+for Nuzero1=0.940:0.005:0.995
+m_1=abs(Lena_fft(:)); 
+Mostup11=max(m_1);
+for Menxian11=0:0.01:Mostup11
+    Accu=numel(m_1(m_1<Menxian11))/numel(m_1);
+    if Accu>=Nuzero1
+        break;
+    end
+ end 
+FRE1=Lena_fft.*((abs(Lena_fft))>Menxian11);
+IRE1 = ifft2(ifftshift(FRE1));
+Variance11=sum(sum((Lenadou-IRE1).^2))/(side^2);   
+PSNR11=20*log10(Total/sqrt(Variance11));                   
+if PSNR11<tPSNR
+Nuzero1=Nuzero1-0.005;
+pt_fft=(1-Nuzero1)*100;
+
+break;
+end
+end
+
+for Nuzero2=0.940:0.005:0.995
+m_2=abs(Lena_dct(:));
+Mostup22=max(m_2);
+for Menxian22=0:0.0001:Mostup22
+    Accu=numel(m_2(m_2<Menxian22))/numel(m_2);
+    if Accu>=Nuzero2
+        break;
+    end
+end 
+DRE2=Lena_dct.*((abs(Lena_dct))>Menxian22);
+IRE2 =idct2(DRE2);
+Variance22=sum(sum((Lenadou-IRE2).^2))/(side^2);   
+PSNR22=20*log10(Total/sqrt(Variance22));  
+if PSNR22<tPSNR
+Nuzero2=Nuzero2-0.005;
+pt_dct=(1-Nuzero2)*100;
+
+break;
+end
+end
+
+for Nuzero3=0.940:0.005:0.995
+m_3=abs(Lena_hadema(:));
+ Mostup33=max(m_3);
+for Menxian33=0:0.0001:Mostup33
+    Accu=numel(m_3(m_3<Menxian33))/numel(m_3);
+    if Accu>=Nuzero3
+        break;
+    end
+end 
+DRE3=Lena_hadema.*((abs(Lena_hadema))>Menxian33);
+IRE3=Hadema'*DRE3*Hadema'./512;
+Variance33=sum(sum((Lenadou-IRE3).^2))/(side^2);   
+PSNR33=20*log10(Total/sqrt(Variance33));  
+if PSNR33<tPSNR
+Nuzero3=Nuzero3-0.005;
+pt_hdm=(1-Nuzero3)*100;
+
+break;
+end
+end
+
+set(handles.SNR_FFT,'string','置零率计算完成');
+set(handles.SNR_DCT,'string','置零率计算完成');
+set(handles.SNR_WHT,'string','置零率计算完成');
+set(handles.Nuzero_FFT,'string',Nuzero1);
+set(handles.Nuzero_DCT,'string',Nuzero2);
+set(handles.Nuzero_WHT,'string',Nuzero3);

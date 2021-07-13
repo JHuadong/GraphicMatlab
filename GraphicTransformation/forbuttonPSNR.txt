@@ -1,0 +1,92 @@
+Lenaorigin=imread('lena.png');      %%读取图像
+Lenadou=im2double(Lenaorigin);      %%对图像数据进行双精度处理
+side=512;
+level=8;                 %%在显示图像时应用的八位无符号整型量化
+Total=2^level-1;         %%Total表示图像拥有的灰度级数量
+Lena_fft=fftshift(fft2(Lenadou));   %%对原图进行2维傅里叶变换
+Lena_dct=dct2(Lenadou);                       %%对图像进行二维离散余弦变换
+Hadema=hadamard(512);               %%产生一个512*512的哈德曼方阵
+Lena_hadema=Hadema*Lenadou*Hadema/512;%%利用公式G=HFH，其中G为变换的结果，F为原始图像，H为变换矩阵
+Nuzero=0.95;
+m1=abs(Lena_fft(:));                        %%m1是一个512^2*1的一维数组
+Mostup1=max(m1);
+
+for Menxian1=0:0.01:Mostup1
+    Accu=numel(m1(m1<Menxian1))/numel(m1);
+    if Accu>=Nuzero
+        break;
+    end
+end                                         %%用于寻找门限值，让门限由小到达变化，当小于门限
+                                            %%的值的数量达到95％时，结束循环,下同理
+Lenafft_No=Lena_fft;
+
+for j=1:512                                 %%根据寻找到的门限值对图像部分像素置零,下同理
+    for k=1:512
+        if abs(Lenafft_No(j,k))<Menxian1
+            Lenafft_No(j,k)=0;
+        end
+    end
+end
+        
+ Lenafft_anti=ifft2(ifftshift(Lenafft_No)); %%对部分置零的图像进行傅里叶逆变换
+ 
+ m2=abs(Lena_dct(:));
+ Mostup2=max(m2);
+ 
+ for Menxian2=0:0.0001:Mostup2
+    Accu=numel(m2(m2<Menxian2))/numel(m2);
+    if Accu>=Nuzero
+        break;
+    end
+ end 
+
+ Lenadct_No=Lena_dct;
+ 
+ for j=1:512                              
+    for k=1:512
+        if abs(Lenadct_No(j,k))<Menxian2
+            Lenadct_No(j,k)=0;
+        end
+    end
+ end
+ 
+ Lenadct_anti=idct2(Lenadct_No);           %% 对部分置零的图像进行离散余弦逆变换
+
+
+ m3=abs(Lena_hadema(:));
+ Mostup3=max(m3);
+ 
+ for Menxian3=0:0.0001:Mostup3
+    Accu=numel(m3(m3<Menxian3))/numel(m3);
+    if Accu>=Nuzero
+        break;
+    end
+ end 
+
+ Lenahmd_No=Lena_hadema;
+ 
+ for j=1:512                              
+    for k=1:512
+        if abs(Lenahmd_No(j,k))<Menxian3
+            Lenahmd_No(j,k)=0;
+        end
+    end
+ end
+ 
+ Lenahmd_anti=Hadema'*Lenahmd_No*Hadema./512';          %% 对部分置零的图像进行哈德曼逆变换，利用公式G=HFH得到F=H'*G*H'
+ 
+ Variance1=sum(sum((Lenadou-Lenafft_anti).^2))/(side^2);   %%求得方差，下同
+PSNR1=20*log10(Total/sqrt(Variance1));                       %%峰值信噪比
+
+Variance2=sum(sum((Lenadou-Lenadct_anti).^2))/(side^2);   %%求得方差，下同
+PSNR2=20*log10(Total/sqrt(Variance2));                       %%峰值信噪比
+
+Variance3=sum(sum((Lenadou-Lenahmd_anti).^2))/(side^2);   %%求得方差，下同
+PSNR3=20*log10(Total/sqrt(Variance3));                       %%峰值信噪比
+
+set(handles.SNR_FFT,'string',PSNR1);
+set(handles.SNR_DCT,'string',PSNR2);
+set(handles.SNR_WHT,'string',PSNR3);
+set(handles.Nuzero_FFT,'string','信噪比计算完成');
+set(handles.Nuzero_DCT,'string','信噪比计算完成');
+set(handles.Nuzero_WHT,'string','信噪比计算完成');
